@@ -1,6 +1,6 @@
 """Off convexity, does per-task error follow edge length or path depth.
 
-Reviewer fdRt proposes that the non-convex benefit of a cascade is basin
+One hypothesis is that the non-convex benefit of a cascade is basin
 selection from a nearby initialisation, which would make the parent-child
 distance the governing quantity rather than the depth of the path. The
 prediction is testable at the level of individual tasks, since within one tree

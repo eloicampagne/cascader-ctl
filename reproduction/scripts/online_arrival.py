@@ -1,6 +1,6 @@
 """CTL quand les taches arrivent une a une, sans rien connaitre de la suite.
 
-Le reviewer Lufy objecte qu'en deploiement les taches arrivent en continu, donc que
+En deploiement, les taches peuvent arriver en continu, de sorte que
 ni eta ni lambda ne peuvent etre choisis hors ligne. L'objection porte au-dela des
 hyperparametres, puisque l'arbre lui-meme suppose la collection connue: la matrice
 de distances est O(T^2), le MST se construit globalement et SLE repartit un budget

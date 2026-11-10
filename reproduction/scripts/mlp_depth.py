@@ -1,5 +1,5 @@
 """
-Depth sweep (NeurIPS 2026 rebuttal, follow-up to item 1).
+Depth sweep of the local model.
 
 Question: how does the CTL advantage evolve as the local model moves from a
 plain linear map (0 hidden layers, the published Table 1 regime) to a deeper,

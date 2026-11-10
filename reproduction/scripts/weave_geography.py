@@ -1,5 +1,5 @@
 """
-Geography-based spanning tree on WEAVE-UK (NeurIPS 2026 rebuttal, Lufy W4).
+Geography-based spanning tree on WEAVE-UK.
 
 Tests whether the learned task geometry (gradient proxy) beats an informed domain
 prior: a spanning tree built from the physical coordinates of the substations
@@ -32,8 +32,7 @@ from table1_nonconvex import (
 )
 
 # Raw coordinates (id, x=lon, y=lat in degrees) fetched from the WEAVE parquet.
-COORDS_RAW = Path("/private/tmp/claude-502/-Users-eloicampagne-Desktop-EDF/"
-                  "57d77548-5f54-462d-ba8f-f1bf39f01f47/scratchpad/weave_coords_raw.csv")
+COORDS_RAW = Path(__import__("os").environ.get("WEAVE_COORDS_RAW", "weave_coords_raw.csv"))
 COORDS = HERE / "weave_coords.csv"          # cached copy (id_unique, lon, lat, xm, ym)
 Bs = (500, 1000, 2000)
 N_REPS = N_REPS_WEAVE

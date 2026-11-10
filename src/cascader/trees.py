@@ -11,7 +11,6 @@ task, which is what a finite budget sees.
 
 from __future__ import annotations
 
-import heapq
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from typing import Dict, Hashable, Iterable, List, Optional, Sequence, Tuple
@@ -92,8 +91,9 @@ def root_tree(undirected: Iterable[Edge], root: Node,
     """Orient an undirected tree away from ``root`` by breadth-first search.
 
     The returned edge order is the BFS order, so every parent precedes its
-    children. Nodes unreachable from ``root`` are dropped, which only happens
-    when the input is not connected.
+    children. When ``nodes`` is given, a node unreachable from ``root`` raises
+    ``ValueError``: a cascade that silently dropped tasks would also be scored
+    on fewer tasks.
 
     ``nodes`` fixes the order of :attr:`RootedTree.nodes`. Pass the collection's
     own order: allocators hand out the apportionment remainder in that order, so
@@ -114,7 +114,14 @@ def root_tree(undirected: Iterable[Edge], root: Node,
                 parent[v] = u
                 edges.append((u, v))
                 q.append(v)
-    order = [v for v in nodes if v in parent] if nodes is not None else list(parent)
+    if nodes is not None:
+        missing = [v for v in nodes if v not in parent]
+        if missing:
+            raise ValueError(f"{len(missing)} task(s) unreachable from the root; "
+                             "the edge set does not span the collection")
+        order = list(nodes)
+    else:
+        order = list(parent)
     return RootedTree(root=root, edges=edges, parent=parent, nodes=order)
 
 
@@ -125,25 +132,27 @@ def root_tree(undirected: Iterable[Edge], root: Node,
 def mst_edges(nodes: Sequence[Node], D: Array) -> List[Edge]:
     """Minimum spanning tree of the complete graph weighted by ``D`` (Prim).
 
-    Returns ``len(nodes) - 1`` undirected edges of minimum total weight.
+    Dense Prim in ``O(T^2)`` time and ``O(T)`` extra memory: one vectorized
+    argmin per added task over the current attachment costs. Returns
+    ``len(nodes) - 1`` undirected edges of minimum total weight.
     """
     n = len(nodes)
     if n <= 1:
         return []
-    visited = [False] * n
+    D = np.asarray(D, dtype=float)
+    visited = np.zeros(n, dtype=bool)
     visited[0] = True
+    best = D[0].copy()
+    best[0] = np.inf
+    via = np.zeros(n, dtype=int)
     edges: List[Edge] = []
-    pq: List[Tuple[float, int, int]] = [(float(D[0, j]), 0, j) for j in range(1, n)]
-    heapq.heapify(pq)
-    while len(edges) < n - 1 and pq:
-        _, u, v = heapq.heappop(pq)
-        if visited[v]:
-            continue
+    for _ in range(n - 1):
+        v = int(np.argmin(np.where(visited, np.inf, best)))
         visited[v] = True
-        edges.append((nodes[u], nodes[v]))
-        for j in range(n):
-            if not visited[j]:
-                heapq.heappush(pq, (float(D[v, j]), v, j))
+        edges.append((nodes[via[v]], nodes[v]))
+        closer = ~visited & (D[v] < best)
+        best[closer] = D[v][closer]
+        via[closer] = v
     return edges
 
 
@@ -178,14 +187,15 @@ def build_chain(nodes: Sequence[Node], D: Array, root: Node, **_: object) -> Roo
     the chain matches any tree with two fewer hyperparameters.
     """
     nodes = list(nodes)
-    idx = {v: i for i, v in enumerate(nodes)}
-    cur = root
-    remaining = set(nodes) - {root}
+    D = np.asarray(D, dtype=float)
+    remaining = np.ones(len(nodes), dtype=bool)
+    cur = nodes.index(root)
+    remaining[cur] = False
     edges: List[Edge] = []
-    while remaining:
-        nxt = min(remaining, key=lambda v: D[idx[cur], idx[v]])
-        edges.append((cur, nxt))
-        remaining.discard(nxt)
+    for _ in range(len(nodes) - 1):
+        nxt = int(np.argmin(np.where(remaining, D[cur], np.inf)))
+        edges.append((nodes[cur], nodes[nxt]))
+        remaining[nxt] = False
         cur = nxt
     return root_tree(edges, root, nodes)
 
@@ -300,6 +310,12 @@ def build_mstc(nodes: Sequence[Node], D: Array, root: Node,
     min_cost = phi[root_idx].copy()
     min_cost[root_idx] = 0.0
     edges: List[Edge] = []
+    # gains[x] = sum over remaining w of max(0, min_cost[w] - phi[x, w]), kept up to
+    # date incrementally: adding a task only changes the terms of the tasks whose
+    # cheapest attachment it improves, so each step costs O(T * changed) instead
+    # of the O(T^2) of a full recomputation.
+    gains = (np.maximum(0.0, min_cost[None, :] - phi)[:, ~in_tree].sum(axis=1)
+             if lambda_reach != 0.0 else None)
 
     while in_tree.sum() < n:
         remaining = np.flatnonzero(~in_tree)
@@ -308,11 +324,8 @@ def build_mstc(nodes: Sequence[Node], D: Array, root: Node,
         penalties = phi[np.ix_(tree_nodes, remaining)] * psi[:, None]
         best_u_pos = np.argmin(penalties, axis=0)
         best_pen = penalties[best_u_pos, np.arange(len(remaining))]
-        if lambda_reach != 0.0:
-            gains = np.maximum(
-                0.0, min_cost[remaining][None, :] - phi[np.ix_(remaining, remaining)]
-            ).sum(axis=1)
-            scores = -best_pen + lambda_reach * gains
+        if gains is not None:
+            scores = -best_pen + lambda_reach * gains[remaining]
         else:
             scores = -best_pen
         pick = int(np.argmax(scores))
@@ -324,8 +337,16 @@ def build_mstc(nodes: Sequence[Node], D: Array, root: Node,
         while cur != -1:
             subtree[cur] += 1
             cur = parent_arr[cur]
-        min_cost = np.minimum(min_cost, phi[v])
-        min_cost[v] = 0.0
+        new_cost = np.minimum(min_cost, phi[v])
+        new_cost[v] = 0.0
+        if gains is not None:
+            gains -= np.maximum(0.0, min_cost[v] - phi[:, v])
+            changed = np.flatnonzero((new_cost < min_cost) & ~in_tree)
+            if changed.size:
+                gains += (np.maximum(0.0, new_cost[changed][None, :] - phi[:, changed])
+                          - np.maximum(0.0, min_cost[changed][None, :] - phi[:, changed])
+                          ).sum(axis=1)
+        min_cost = new_cost
         edges.append((nodes[u], nodes[v]))
 
     parent: Dict[Node, Optional[Node]] = {root: None}

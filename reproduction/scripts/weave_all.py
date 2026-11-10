@@ -1,5 +1,5 @@
 """
-Single consolidated WEAVE-UK run so every WEAVE number in the rebuttal traces to
+Single consolidated WEAVE-UK run so every WEAVE number traces to
 ONE execution with ONE seeding. Computes, per (regime, B, rep):
 
   Individual, Star, RIT (reweighted independent training, SLE budget but no

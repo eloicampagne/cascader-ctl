@@ -51,8 +51,8 @@ warnings.filterwarnings("ignore")
 
 HERE = Path(__file__).parent.resolve()
 sys.path.insert(0, str(HERE))
-M5DIR = Path("/private/tmp/claude-502/-Users-eloicampagne-Desktop-EDF/"
-             "57d77548-5f54-462d-ba8f-f1bf39f01f47/scratchpad")
+# Folder holding sales_train_evaluation.csv, sales_test_evaluation.csv and calendar.csv.
+M5DIR = Path(__import__("os").environ.get("M5_DATA_DIR", "."))
 
 H = 28                     # horizon, et taille du bloc de validation
 LAGS = (28, 35, 42, 56, 364)

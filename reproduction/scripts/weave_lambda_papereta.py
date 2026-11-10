@@ -3,7 +3,7 @@ Lambda sensitivity of CTL-MSTc on WEAVE-UK at the PAPER's learning rate.
 
 The earlier lambda sweep used eta=0.01, which put its absolute RMSE level far
 below the main tables and made WEAVE-UK linear appear at three different levels
-across the rebuttal. This rerun uses the published eta (Optuna, 0.0015882), the
+across experiments. This rerun uses the published eta (Optuna, 0.0015882), the
 same one behind every other linear WEAVE number, so the sweep's level coincides
 with the main tables and only lambda varies.
 

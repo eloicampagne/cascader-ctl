@@ -1,6 +1,6 @@
 """Ce que devient l'avantage de la cascade quand le nombre de taches croit.
 
-Le reviewer Lufy objecte que nos experiences ne sont pas a grande echelle. L'axe
+Passage a l'echelle. L'axe
 sur lequel CTL passe a l'echelle n'est pas la taille du modele local mais le
 nombre de taches T, puisque le budget est partage entre elles. Aucune de nos
 experiences ne fait varier T, ce que `scatter_sweep.py` signalait deja comme une
@@ -10,8 +10,8 @@ grappes pour que le cout reste tenable.
 Deux regimes de budget, qui repondent a deux questions differentes:
 
     fixe-total     B constant quand T croit, donc b = B/T decroit. C'est le
-                   scenario reel invoque par le reviewer, davantage de taches
-                   sous une meme enveloppe de calcul.
+                   scenario reel, davantage de taches sous une meme
+                   enveloppe de calcul.
     fixe-par-tache B = b0 * T, donc chaque tache garde le meme nombre de pas.
                    Isole l'effet du nombre de taches de celui du budget par tache.
 

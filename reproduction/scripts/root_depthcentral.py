@@ -5,7 +5,7 @@ total distance to the others, which is computable before the tree exists but
 ignores the topology. The depth bound makes the root-to-leaf path the governing
 quantity, so the natural alternative is the tree centre, the node minimising
 eccentricity and therefore the depth the bound penalises. This is the two-pass
-rule the rebuttal commits to: build the undirected tree once with the medoid as
+rule: build the undirected tree once with the medoid as
 construction seed, then re-root at its centre by relabelling, with no rebuild.
 
 The rule leaves Star untouched, its centre being the hub, and halves the depth

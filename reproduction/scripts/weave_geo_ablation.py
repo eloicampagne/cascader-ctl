@@ -1,5 +1,5 @@
 """
-Disentangle geographic structure from SLE allocation on WEAVE-UK (Lufy W4).
+Disentangle geographic structure from SLE allocation on WEAVE-UK.
 
 Is the geography tree strong because physical proximity is an informative task
 prior, or merely because it inherits the SLE budget allocation that any tree gets?

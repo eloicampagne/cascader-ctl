@@ -22,7 +22,7 @@ ne s'applique pas a notre regime. Si les deux se rejoignent, Star suffit et il
 faut le dire.
 
 Cout: N passes avant par tache et par point de reference, aucune retropropagation.
-C'est l'experience la moins chere qui reponde a la citation du reviewer.
+C'est l'experience la moins chere sur cette question.
 
     python3.12 expert_density.py --datasets CIFAR,WEAVE-UK --N 64 --reps 3
 """

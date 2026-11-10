@@ -6,11 +6,9 @@ finite budget that ordering matters.
 
 The paper ships :func:`medoid_root`, computable from the data before any tree
 exists and hence identical across every compared method. That uniformity is its
-justification, not its accuracy: the appendix audit ranks it last of the four
-rules implemented here. The two rules derived from the error surrogate,
-:func:`weighted_1_median` and :func:`weighted_1_centre`, rank first and second,
-but they read distances along the tree, so each construction would get a
-different root and the comparison would stop being at equal root.
+justification. The two rules derived from the error surrogate,
+:func:`weighted_1_median` and :func:`weighted_1_centre`, read distances along
+the tree, so each construction gets its own root.
 
 Where the surrogate comes from. Unrolling the edge recursion along a root-to-leaf
 path, edge :math:`j` enters the bound as
@@ -30,6 +28,7 @@ from collections import defaultdict, deque
 from typing import Dict, Hashable, Iterable, Sequence, Tuple
 
 import numpy as np
+from scipy.spatial.distance import cdist
 
 Array = np.ndarray
 Node = Hashable
@@ -57,7 +56,7 @@ def medoid_root(nodes: Sequence[Node], X: Dict[Node, Array]) -> Node:
     """
     nodes = list(nodes)
     means = np.stack([np.asarray(X[v], dtype=float).mean(axis=0) for v in nodes])
-    D = np.linalg.norm(means[:, None, :] - means[None, :, :], axis=-1)
+    D = cdist(means, means)
     return nodes[int(np.argmin(D.sum(axis=1)))]
 
 
@@ -139,7 +138,6 @@ def weighted_1_median(nodes: Sequence[Node], undirected: Iterable[Edge],
     """The task minimizing total weighted tree distance to all others.
 
     The :math:`q \\to 1` limit of minimizing the mean of :math:`\\Phi(r, v)`.
-    Best of the four rules in the appendix audit.
     """
     td = _tree_distances(nodes, undirected, D)
     return min(nodes, key=lambda s: sum(td[s].values()))

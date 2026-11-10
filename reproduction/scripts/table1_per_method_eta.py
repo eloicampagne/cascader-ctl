@@ -1,6 +1,6 @@
 """Table 1 du papier, refaite avec un pas d'apprentissage propre a chaque methode.
 
-Le reviewer Lufy demande si eta a ete regle sur CTL puis applique aux baselines.
+Question: eta a-t-il ete regle sur CTL puis applique aux baselines ?
 `CTL/optim.py` confirme que oui: l'objectif Optuna entraine une cascade et
 minimise sa perte. La reponse promet de remplacer ce protocole par un reglage par
 methode dans tout le papier. Ce fichier le fait.

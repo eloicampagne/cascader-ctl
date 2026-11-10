@@ -18,6 +18,7 @@ from __future__ import annotations
 from typing import Any, Callable, Dict, Hashable, Sequence
 
 import numpy as np
+from scipy.spatial.distance import cdist
 
 __all__ = [
     "compute_gradient_distance",
@@ -47,8 +48,13 @@ def symmetrize(D: Array) -> Array:
 
 
 def _pairwise_euclidean(E: Array) -> Array:
-    """Euclidean distances between the rows of ``E``."""
-    D = np.linalg.norm(E[:, None, :] - E[None, :, :], axis=-1)
+    """Euclidean distances between the rows of ``E``.
+
+    Computed by :func:`scipy.spatial.distance.cdist`, which evaluates the norm of
+    each difference (same values as broadcasting) in ``O(T^2)`` memory instead of
+    the ``O(T^2 p)`` a broadcast ``E[:, None] - E[None]`` would allocate.
+    """
+    D = cdist(np.asarray(E, dtype=float), np.asarray(E, dtype=float))
     np.fill_diagonal(D, 0.0)
     return D
 

@@ -1,6 +1,6 @@
 """CTL avec un modele local de plusieurs millions de parametres.
 
-Le reviewer Lufy objecte que nos experiences ne sont pas a grande echelle. Le
+Passage a l'echelle, volet taille du modele. Le
 volet "nombre de taches" est traite par `scale_tasks.py`. Ici on traite l'autre
 volet, la taille du modele, et on le fait sur des images reelles: un gros modele
 sur la famille synthetique a grappes n'aurait aucun sens, la cible y etant
@@ -11,8 +11,8 @@ du papier (T=200, 20 grappes, 64 exemples d'entrainement par tache). Le modele
 local est un ResNet pre-entraine sur ImageNet dont le tronc est gele jusqu'a
 layer3 inclus et dont layer4 plus la tete sont entraines. Le tronc gele est
 evalue une fois pour toutes et mis en cache, donc le cout par pas de gradient ne
-porte que sur la partie entrainee, ce qui est exactement le regime que le
-reviewer decrit: adapter un gros modele pre-entraine sous budget contraint.
+porte que sur la partie entrainee: adapter un gros modele pre-entraine sous
+budget contraint.
 
 Parametres entrainables par tache:
 

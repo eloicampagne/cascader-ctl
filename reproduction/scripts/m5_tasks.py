@@ -1,10 +1,9 @@
 """CTL sur M5: 30490 series de vente reelles sous une seule enveloppe de calcul.
 
-Le reviewer Lufy objecte que nos collections sont petites et homogenes. WEAVE-UK,
+Les collections du papier restent petites et homogenes. WEAVE-UK,
 la plus grande collection reelle du papier, compte 500 taches. M5 (Makridakis,
 Spiliotis et Assimakopoulos, 2022) en offre 30490, soit 3049 produits dans 10
-magasins, sur 1941 jours, avec 68 % de zeros. C'est le cas que la reponse a n7Am
-donnait deja en exemple: agregat bien mesure, series individuelles partielles et
+magasins, sur 1941 jours, avec 68 % de zeros. C'est le cas typique: agregat bien mesure, series individuelles partielles et
 bruitees.
 
 Chaque serie est une tache. Le modele local est le MLP du papier, la distance est
@@ -43,8 +42,8 @@ sys.path.insert(0, str(HERE))
 from table1_nonconvex import (make_model, train_steps, cascade_train,
                               sle_alloc, uniform_alloc)
 
-M5DIR = Path("/private/tmp/claude-502/-Users-eloicampagne-Desktop-EDF/"
-             "57d77548-5f54-462d-ba8f-f1bf39f01f47/scratchpad")
+# Folder holding sales_train_evaluation.csv, sales_test_evaluation.csv and calendar.csv.
+M5DIR = Path(__import__("os").environ.get("M5_DATA_DIR", "."))
 LAGS = (1, 7, 14, 28)
 ROLLS = (7, 28)
 N_TEST = 28
@@ -160,6 +159,7 @@ def evaluate(models, Xn, y_raw, ym, ys, n_tr, nodes):
 
 
 def main():
+    global METHODS
     ap = argparse.ArgumentParser()
     ap.add_argument("--T", type=int, default=500, help="0 = toutes les series")
     ap.add_argument("--train-days", type=int, default=300)
@@ -195,7 +195,6 @@ def main():
              "CTL-MST": (root, mst_edges),
              "CTL-MST-flat": (root, mst_edges)}   # meme arbre, allocation plate
 
-    global METHODS
     METHODS = tuple(a.methods.split(","))
     Bs = ([int(b) for b in a.budgets.split(",")] if a.budgets
           else [2 * T, 10 * T])

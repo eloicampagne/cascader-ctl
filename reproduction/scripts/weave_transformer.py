@@ -1,6 +1,6 @@
 """CTL on WEAVE-UK with a Transformer local model.
 
-n7Am (round 2) asks for a more expressive local model than the MLP, beyond the
+A more expressive local model than the MLP, beyond the
 hidden-layer sweep and the CNN. This runs the faithful WEAVE protocol with a small
 Transformer-encoder local model: the 54 features become 54 scalar tokens, a shared
 embedding lifts each to d_model=16, a single multi-head self-attention encoder

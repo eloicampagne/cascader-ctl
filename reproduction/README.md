@@ -1,7 +1,7 @@
 # Reproduction scripts
 
 The scripts under `scripts/` are the ones that produced the paper's tables and
-appendices, copied unmodified. They are the historical record, not part of the
+appendices. They are the historical record, not part of the
 distributed package: they are not installed, not imported by `cascader`, and not
 covered by the test suite.
 
@@ -34,11 +34,12 @@ loaders, tree builders, the cascade loop and the allocators.
 | `online_arrival.py` | `cascader online` |
 | `scale_tasks.py`, `large_t_chain_vs_mst.py` | `cascader scaling` |
 | `weave_tune_on_validation.py` | `cascader.data.weave_collection(val_size=...)` |
+| `exact_root.py` | `cascader.methods`, root initialized at its least-squares solution |
 
 The rest have no packaged equivalent. They cover the pretrained-feature and
 foundation-model studies, the M5 hierarchy, structural heterogeneity, the
 parallelism measurements, the alternative distance audits and several
-explorations the paper reports as negative results.
+exploratory studies.
 
 ## One caveat
 

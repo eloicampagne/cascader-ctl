@@ -1,5 +1,5 @@
 """
-Non-convex replication of the paper's Table 1 (NeurIPS 2026 rebuttal, item 1).
+Non-convex replication of the paper's main table.
 
 Re-runs the FULL published pipeline with a non-convex local model (MLP),
 faithfully matching the exact protocol reconstructed from the experiment

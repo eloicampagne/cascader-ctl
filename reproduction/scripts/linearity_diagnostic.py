@@ -1,7 +1,7 @@
 """
-Is the data actually non-linear? (rebuttal follow-up)
+Is the data actually non-linear?
 
-A reviewer can grant that our local MODEL is non-convex and still object that the
+A non-convex local MODEL does not guarantee that the
 DATA is essentially linear, so the MLP has no non-linear structure to exploit and
 the non-convex evidence is weaker than it looks. On WEAVE-UK in particular,
 half-hourly forecasting from 48 recent lags is close to a first-order expansion,

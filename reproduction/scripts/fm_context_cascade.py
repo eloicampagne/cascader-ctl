@@ -1,8 +1,7 @@
 """CTL sans gradient: cascader le contexte d'un modele de fondation tabulaire.
 
-Le reviewer Lufy objecte que le budget d'entrainement n'est pas le goulot dans
-les vrais deploiements a grande echelle. La reponse la plus forte est que CTL ne
-depend pas du tout de l'entrainement par gradient. Avec un modele de fondation
+Dans les deploiements a grande echelle, le budget d'entrainement n'est pas
+toujours le goulot. CTL ne depend pas du tout de l'entrainement par gradient. Avec un modele de fondation
 tabulaire gele, TabPFN ici, il n'y a aucun parametre a copier: l'objet transfere
 est le contexte, et le budget devient le nombre de lignes etiquetees que chaque
 tache doit fournir.

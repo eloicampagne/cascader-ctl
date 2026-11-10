@@ -1,7 +1,6 @@
 """Paired significance of Chain vs CTL-MSTc vs CTL-MST, MLP (non-convex) regime.
 
-n7Am round 2 objects that Chain is "often the strongest" among the cascades,
-which would weaken the tree-construction contribution. This tests whether that
+Chain often has the lowest mean error among the cascades. This tests whether that
 nominal ordering is significant. Every method shares the same per-seed task draw
 (run_regression / run_classification generate the tasks once per seed, then run
 all methods), so the seed index pairs the samples exactly.

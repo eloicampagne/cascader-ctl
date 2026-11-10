@@ -1,18 +1,15 @@
 """
-Official NeurIPS 2026 rebuttal experiments for the CTL paper (Submission 6227).
+Supplementary experiments for the CTL paper:
 
-Addresses the official reviews (CTL_reviews_neurips.pdf) following
-`revision_roadmap_official.md`:
+  EXP-A1  Non-convex CTL on WEAVE-UK (MLP end-to-end)
+  EXP-A2  Non-convex CTL on nonlinear synthetic teachers    (proxy off-linearity)
+  EXP-B   CTL-vs-direct-TL boundary, bound looseness
+  EXP-C   eta / tau sensitivity
+  EXP-D   Root sensitivity + free re-rooting
+  EXP-E   Source-solution perturbation
+  EXP-F   Heterogeneity probe (cluster decoupling)
 
-  EXP-A1  Non-convex CTL on WEAVE-UK (MLP end-to-end)      item 1  (n7Am W2/W5/Q2, fdRt W1/Q1/L1, Lufy W2)
-  EXP-A2  Non-convex CTL on nonlinear synthetic teachers    item 1 + item 10 (proxy off-linearity)
-  EXP-B   CTL-vs-direct-TL boundary, bound looseness        item 3  (n7Am W4/Q4, Lufy W1)
-  EXP-C   eta / tau sensitivity                             item 2  (n7Am W6/Q3, Lufy W3)
-  EXP-D   Root sensitivity + free re-rooting                item 6  (fdRt W3/Q2/L2)
-  EXP-E   Source-solution perturbation                      item 13 (Lufy W5)
-  EXP-F   Heterogeneity probe (cluster decoupling)          item 4  (n7Am W1/Q1)
-
-Run:  python3.12 rebuttal_official_experiments.py --exp all
+Run:  python3.12 supplementary_experiments.py --exp all
 All results saved as CSV in this directory. CPU is forced (12x faster than MPS
 for these model sizes).
 """
@@ -52,7 +49,7 @@ WEAVE_TRAIN = str(CTL_DIR / "data" / "train_weave_500.csv")
 WEAVE_TEST = str(CTL_DIR / "data" / "test_weave_500.csv")
 
 # ---------------------------------------------------------------------------
-# Shared helpers (aligned with neurips_rebuttal_experiments.py, May version)
+# Shared helpers
 # ---------------------------------------------------------------------------
 
 def _normalize(nodes, X_tr, y_tr, X_te):
@@ -162,7 +159,7 @@ def _synth_dataset(T, d, n_clusters, tau_within, tau_between, sigma, seed,
 
 
 # ===========================================================================
-# EXP-A1 — Non-convex CTL on WEAVE-UK (item 1)
+# EXP-A1 — Non-convex CTL on WEAVE-UK
 # ===========================================================================
 
 def expA1_nonconvex_weave(Bs=(500, 1000, 2000), etas=(0.01, 0.05, 0.2), n_reps=3):
@@ -260,7 +257,7 @@ def _random_tree(nodes, rng):
 def expA2_nonconvex_synthetic(n_reps=10, T=100, d=5, hidden_t=16,
                               B_mult=5, eta=0.05, sigma=0.1):
     """Nonlinear clustered teacher tasks; every method trains a SimpleMLP
-    end-to-end. Also compares distance proxies off-linearity (item 10):
+    end-to-end. Also compares distance proxies off-linearity:
     gradient proxy vs oracle teacher-weight distance vs random tree."""
     print("\n=== EXP-A2: Non-convex CTL on nonlinear synthetic teachers ===")
     B = B_mult * T
@@ -304,7 +301,7 @@ def expA2_nonconvex_synthetic(n_reps=10, T=100, d=5, hidden_t=16,
 
 
 # ===========================================================================
-# EXP-B — CTL-vs-direct-TL boundary and bound looseness (item 3)
+# EXP-B — CTL-vs-direct-TL boundary and bound looseness
 # ===========================================================================
 
 def _gd_linear(theta, X, y, steps, eta):
@@ -329,15 +326,14 @@ def expB_ctl_vs_direct(n_seeds=20, d=20, n=32, sigma=0.1, eta=0.5,
     Geometry: source optimum at 0, target optimum at distance rho along unit
     direction u; k intermediates evenly spaced on the segment, displaced
     orthogonally by gamma*rho (gamma=0: aligned relays; gamma large: weakly
-    related intermediates — Lufy's third failure regime).
+    related intermediates).
 
     cond_het=True gives intermediates ill-conditioned data (n_i = d + 4) and
-    the target well-conditioned data (n_t = 4d), producing rho_v << rho_max —
-    Lufy's first failure regime and the looseness source named in Remark 2.4.
+    the target well-conditioned data (n_t = 4d), producing rho_v << rho_max, the looseness source
+    named in the remark on the scope of the theorem.
 
     Also computes the Thm 2.3 relaxed bounds with exact per-task contraction
-    rates rho_v = ||I - (eta/n) X_v^T X_v||_2 to quantify bound looseness
-    (item 3 / n7Am W4 / Lufy W1)."""
+    rates rho_v = ||I - (eta/n) X_v^T X_v||_2 to quantify bound looseness."""
     print("\n=== EXP-B: CTL vs direct TL boundary ===")
     rows = []
     for seed in range(n_seeds):
@@ -423,7 +419,7 @@ def expB_ctl_vs_direct(n_seeds=20, d=20, n=32, sigma=0.1, eta=0.5,
 
 
 # ===========================================================================
-# EXP-C — eta and tau sensitivity (item 2)
+# EXP-C — eta and tau sensitivity
 # ===========================================================================
 
 def expC_eta_tau_sensitivity(etas=(0.001, 0.003, 0.01, 0.03, 0.1, 0.3),
@@ -500,7 +496,7 @@ def expC_eta_tau_sensitivity(etas=(0.001, 0.003, 0.01, 0.03, 0.1, 0.3),
 
 
 # ===========================================================================
-# EXP-D — Root sensitivity on the fixed MST (item 6)
+# EXP-D — Root sensitivity on the fixed MST
 # ===========================================================================
 
 def _tree_adjacency(edges):
@@ -531,8 +527,8 @@ def expD_root_sensitivity(B=1000, n_reps=3, n_random=5, n_seeds=10):
     """The undirected MST does not depend on the root; re-rooting only changes
     the cascade orientation and the SLE allocation. Depth-central rooting is
     therefore obtainable at zero extra graph-construction cost (one O(T^2)
-    BFS pass), which is the 'approximate iterative scheme' fdRt asks about,
-    collapsed to a single exact step."""
+    BFS pass), an approximate iterative re-rooting scheme collapsed to a single
+    exact step."""
     print("\n=== EXP-D: Root sensitivity ===")
     rows = []
 
@@ -584,14 +580,14 @@ def expD_root_sensitivity(B=1000, n_reps=3, n_random=5, n_seeds=10):
 
 
 # ===========================================================================
-# EXP-E — Source-solution perturbation (item 13)
+# EXP-E — Source-solution perturbation
 # ===========================================================================
 
 def expE_source_perturbation(sigmas=(0.0, 0.05, 0.1, 0.2, 0.5, 1.0),
                              n_seeds=10, T=100, B_mult=5, eta=0.01):
     """Perturb the root solution after its refinement (relative Gaussian noise
     of magnitude sigma_p * ||theta_root||), then cascade normally. Tests the
-    theta_s-hat ~ theta_s-star assumption (Lufy W5 / Q)."""
+    theta_s-hat ~ theta_s-star assumption."""
     print("\n=== EXP-E: Source perturbation ===")
     B = B_mult * T
     rows = []
@@ -652,7 +648,7 @@ def expE_source_perturbation(sigmas=(0.0, 0.05, 0.1, 0.2, 0.5, 1.0),
 
 
 # ===========================================================================
-# EXP-F — Heterogeneity probe: cluster decoupling (item 4)
+# EXP-F — Heterogeneity probe: cluster decoupling
 # ===========================================================================
 
 def expF_heterogeneity(tau_betweens=(2.0, 4.0, 8.0, 16.0, 32.0, 64.0),

@@ -2,14 +2,13 @@
 
 Two tuning protocols, selected by ``--eta-mode``.
 
-``shared`` reproduces the published table. One rate per collection, taken from
-:mod:`cascader.config`, applied to every method. That rate was chosen by an
-Optuna search on a CTL-MSTc cascade, so the baselines run at a rate picked on
-the cascade.
+``per-method`` is the protocol of the paper's tables. Each
+``(collection, budget, method)`` gets its own rate, selected on tuning seeds
+disjoint from the evaluation seeds.
 
-``per-method`` is the fair version. Each ``(collection, budget, method)`` gets
-its own rate, selected on tuning seeds disjoint from the evaluation seeds. This
-is the protocol behind the appendix table, and the cascade still leads.
+``shared`` applies one rate per collection, taken from :mod:`cascader.config`,
+to every method. That rate was chosen by an Optuna search on a CTL-MSTc
+cascade.
 
 Run::
 

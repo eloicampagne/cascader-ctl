@@ -1,6 +1,6 @@
 """Chaque methode recoit son propre pas d'apprentissage.
 
-Le reviewer Lufy demande si eta a ete regle sur CTL puis applique aux baselines.
+Question: eta a-t-il ete regle sur CTL puis applique aux baselines ?
 La lecture de `CTL/optim.py` confirme que l'objectif Optuna entraine une cascade et
 minimise sa perte, donc oui. La seule reponse convaincante est de refaire la
 comparaison en accordant a chaque methode son meilleur pas, ce qui retire tout

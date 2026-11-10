@@ -1,6 +1,6 @@
 """
 London daily household electricity as a many-task collection with a genuinely
-non-linear target (rebuttal follow-up on the data-linearity objection).
+non-linear target.
 
 WEAVE-UK forecasts half-hourly consumption from 48 recent lags, which is close to
 a first-order expansion and therefore nearly linear. The London dataset

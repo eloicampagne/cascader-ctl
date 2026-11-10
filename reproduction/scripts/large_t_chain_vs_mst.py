@@ -1,6 +1,6 @@
 """Does CTL-MST's bounded depth buy anything as T grows?
 
-n7Am round 2: a greedy chain often beats the tree constructions. In the convex
+A greedy chain often beats the tree constructions. In the convex
 regime the paper's depth bound predicts shallow trees should win; the non-convex
 significance test shows Chain winning at T<=500. This script asks what happens
 as the number of tasks grows, on the paper's own synthetic generator (Syn-10:

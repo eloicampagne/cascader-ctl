@@ -1,9 +1,9 @@
 """Structural heterogeneity: a shared-trunk / per-head reformulation of CTL.
 
-n7Am (Q1/W1) notes that CTL as formulated needs a shared parameter space, so
-tasks with different output structure fall outside it, and that heterogeneous
-transfer is where TL is often most needed. This is a toy that keeps the honest
-scope statement but supplies partial evidence.
+CTL as formulated needs a shared parameter space, so
+tasks with different output structure fall outside it, and heterogeneous
+transfer is where TL is often most needed. This toy keeps that scope statement
+and supplies partial evidence.
 
 All tasks read out the SAME shared non-linear representation phi*(x)=ReLU(W* x),
 but through heads of different shape:
@@ -44,7 +44,7 @@ METHODS = ["Individual", "Star", "Chain", "CTL-MST"]
 # there is genuine transferable structure that the task geometry can exploit: a
 # task's trunk is useful mainly to same-cluster tasks. A globally shared trunk
 # was tried first and gave no clean gain (transfer is meaningless when every
-# task's trunk helps every other equally) -- see structural_heterogeneity_NOTES.
+# task's trunk helps every other equally) 
 def phi_star(X, Wstar):
     return np.maximum(X @ Wstar.T, 0.0)                        # ReLU features
 
