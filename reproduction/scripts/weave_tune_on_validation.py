@@ -51,6 +51,7 @@ def main():
     ap.add_argument("--stem", default="t2pm")
     ap.add_argument("--tune-seeds", type=int, default=5)
     ap.add_argument("--model", default="linear", choices=("linear", "mlp"))
+    ap.add_argument("--methods", default="", help="sous-ensemble, defaut METHODS")
     a = ap.parse_args()
 
     print(f"WEAVE-UK, reglage sur validation ({VAL_SIZE} lignes), "
@@ -69,7 +70,7 @@ def main():
         for B in budgets_for("WEAVE-UK"):
             for eta in etas_for("WEAVE-UK", a.model):
                 rng = np.random.default_rng(10_000 + seed)
-                for m in METHODS:
+                for m in (a.methods.split(",") if a.methods else METHODS):
                     torch.manual_seed(seed)
                     try:
                         models = run_method(m, nodes, X_tr, y_tr, X_tr, y_tr, D,

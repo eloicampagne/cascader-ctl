@@ -38,15 +38,18 @@ HERE = Path(__file__).parent.resolve()
 sys.path.insert(0, str(HERE))
 
 from table1_nonconvex import (CONFIG, MLP_ETA, METHODS, make_model, eval_all,
+                              celeba_tasks,
                               run_method, syn_tasks, weave_tasks, image_tasks,
                               N_SEEDS_SYN, N_SEEDS_IMG, N_REPS_WEAVE)
 from graph import compute_gradient_distance, select_seed_node
 
 GRID = (3e-4, 1e-3, 3e-3, 0.01, 0.03, 0.1, 0.2, 0.3, 0.5)
 BUDGETS = {"Syn-10": (500, 1000, 2000), "WEAVE-UK": (500, 1000, 2000),
-           "FMNIST": (500, 2000), "CIFAR": (500, 2000)}
+           "FMNIST": (500, 2000), "CIFAR": (500, 2000),
+           "CelebA": (2000, 4000)}
 N_SEEDS = {"Syn-10": N_SEEDS_SYN, "WEAVE-UK": N_REPS_WEAVE,
-           "FMNIST": N_SEEDS_IMG, "CIFAR": N_SEEDS_IMG}
+           "FMNIST": N_SEEDS_IMG, "CIFAR": N_SEEDS_IMG,
+           "CelebA": N_SEEDS_IMG}
 HIGHER = {"FMNIST", "CIFAR", "CelebA"}
 TUNE_OFFSET = 500
 
@@ -65,7 +68,10 @@ def load(dataset, seed):
     if dataset == "Syn-10":
         n, Xtr, ytr, Xte, yte, st, D, r = syn_tasks(seed)
         return n, Xtr, ytr, Xte, yte, st, D, r, "regression"
-    n, Xtr, ytr, Xte, yte = image_tasks(dataset, seed)
+    if dataset == "CelebA":
+        n, Xtr, ytr, Xte, yte = celeba_tasks(seed)
+    else:
+        n, Xtr, ytr, Xte, yte = image_tasks(dataset, seed)
     D = compute_gradient_distance(n, Xtr, ytr)
     return (n, Xtr, ytr, Xte, yte, None, D, select_seed_node(Xtr, ytr),
             "classification")

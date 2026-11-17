@@ -230,3 +230,30 @@ def test_depths_and_subtree_sizes_agree_on_a_path(tiny):
     sizes = chain.subtree_sizes()
     for v in tiny.nodes:
         assert sizes[v] == tiny.T - depths[v]
+
+
+# ---------------------------------------------------------------- CTL-Forest
+
+def test_forest_spans_every_task_and_reduces_to_a_chain_without_long_edges():
+    import numpy as np
+    from cascader.trees import build_chain, build_forest
+    rng = np.random.default_rng(0)
+    P = rng.normal(size=(30, 2))
+    D = np.linalg.norm(P[:, None] - P[None], axis=-1)
+    nodes = list(range(30))
+    f = build_forest(nodes, D, 0)
+    assert sorted(f.nodes) == nodes and len(f.edges) == 29
+    # with an infinite threshold no edge is cut: the forest is the greedy chain
+    g = build_forest(nodes, D, 0, z=np.inf)
+    assert sorted(map(tuple, g.edges)) == sorted(map(tuple, build_chain(nodes, D, 0).edges))
+
+
+def test_forest_branches_between_well_separated_groups():
+    import numpy as np
+    from cascader.trees import build_forest
+    rng = np.random.default_rng(1)
+    P = np.concatenate([rng.normal(size=(15, 2)), 50 + rng.normal(size=(15, 2))])
+    D = np.linalg.norm(P[:, None] - P[None], axis=-1)
+    f = build_forest(list(range(30)), D, 0)
+    long_edges = [(u, v) for u, v in f.edges if D[u, v] > 20]
+    assert len(long_edges) == 1          # one bridge between the two groups

@@ -57,6 +57,12 @@ class DatasetConfig:
 
 
 CONFIGS: Dict[str, DatasetConfig] = {
+    # Syn reuses the Syn-10 settings: rates are selected per method on tuning
+    # seeds, so only the root fractions and the MSTc weight carry over.
+    "Syn": DatasetConfig(
+        eta=0.0012710047170539321, mlp_eta=0.2, reg=0.0,
+        b_proto_frac=0.14414738903213942, mstc_lambda=0.6720291677813087,
+        task="regression", T=200),
     "Syn-10": DatasetConfig(
         eta=0.0012710047170539321, mlp_eta=0.2, reg=0.0,
         b_proto_frac=0.14414738903213942, mstc_lambda=0.6720291677813087,

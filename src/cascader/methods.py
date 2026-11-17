@@ -7,9 +7,11 @@ method                  structure                           allocation
 ``Star``                depth-1 hub                         uniform
 ``RandTree``            random recursive tree               uniform
 ``Chain``               greedy nearest-neighbour path       SLE
-``CTL-kNN``             BFS tree over the k-NN graph        SLE
+``Chain-2opt``          greedy path shortened by 2-opt      SLE
 ``CTL-MST``             minimum spanning tree               SLE
-``CTL-MSTc``            budget-aware greedy tree            SLE
+``CTL-Forest``          MST cut at long edges, chains inside SLE
+``kNN-BFS``             BFS tree over the k-NN graph        SLE   (ablation)
+``CTL-MSTc``            budget-aware greedy tree            SLE   (ablation)
 ======================  ==================================  ==================
 
 Star and RandTree get the uniform allocation because neither carries a geometry
@@ -33,12 +35,15 @@ from .trees import CONSTRUCTIONS, RootedTree
 
 Node = Hashable
 
-__all__ = ["METHODS", "SLE_METHODS", "build_structure", "allocate", "run_method"]
+__all__ = ["METHODS", "ABLATIONS", "SLE_METHODS", "build_structure", "allocate", "run_method"]
 
-METHODS = ["Individual", "Star", "RandTree", "Chain", "CTL-kNN", "CTL-MST", "CTL-MSTc"]
+#: The seven methods of the paper's main tables. kNN-BFS and CTL-MSTc remain
+#: available to build_structure as ablations.
+METHODS = ["Individual", "Star", "RandTree", "Chain", "Chain-2opt", "CTL-MST", "CTL-Forest"]
+ABLATIONS = ["kNN-BFS", "CTL-MSTc"]
 
 #: Methods whose structure carries geometry, hence receive the SLE allocation.
-SLE_METHODS = frozenset({"Chain", "CTL-kNN", "CTL-MST", "CTL-MSTc"})
+SLE_METHODS = frozenset({"Chain", "Chain-2opt", "CTL-MST", "CTL-Forest", "kNN-BFS", "CTL-kNN", "CTL-MSTc"})
 
 
 def build_structure(method: str, tasks: TaskCollection, cfg: DatasetConfig,
@@ -53,9 +58,23 @@ def build_structure(method: str, tasks: TaskCollection, cfg: DatasetConfig,
     try:
         builder = CONSTRUCTIONS[method]
     except KeyError:
-        raise KeyError(f"unknown method {method!r}; choose from {METHODS}") from None
-    return builder(tasks.nodes, tasks.D, tasks.root,
-                   rng=rng, lambda_reach=cfg.mstc_lambda)
+        raise KeyError(f"unknown method {method!r}; choose from {METHODS + ABLATIONS}") from None
+    if method == "RandTree":
+        return builder(tasks.nodes, tasks.D, tasks.root,
+                       rng=rng, lambda_reach=cfg.mstc_lambda)
+    # Every other construction is a deterministic function of the distances, the
+    # root and (for CTL-MSTc) the coverage weight, and does not depend on the rate
+    # or the budget, so a sweep over those reuses one tree per collection. The
+    # cache lives on the collection; the key includes the identity of ``D`` and
+    # the root, so replacing either rebuilds the tree.
+    cache = tasks.__dict__.setdefault("_tree_cache", {})
+    key = (method, tasks.root, id(tasks.D),
+           float(cfg.mstc_lambda) if method == "CTL-MSTc" else None)
+    tree = cache.get(key)
+    if tree is None:
+        tree = builder(tasks.nodes, tasks.D, tasks.root, rng=rng, lambda_reach=cfg.mstc_lambda)
+        cache[key] = tree
+    return tree
 
 
 def allocate(method: str, tree: RootedTree, tasks: TaskCollection, B: int,

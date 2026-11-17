@@ -114,3 +114,24 @@ def test_the_catalogue_matches_the_configured_collections():
     from cascader.config import CONFIGS
 
     assert set(COLLECTIONS) == set(CONFIGS)
+
+
+def test_syn_parameters_live_in_a_subspace_whose_geometry_does_not_depend_on_D():
+    import numpy as np
+    from cascader.data.synthetic import generate_subspace_tasks
+    for D in (5, 40, 120):
+        th, U, _, _, _ = generate_subspace_tasks(T=50, D=D, rng=np.random.default_rng(3))
+        assert np.allclose(U.T @ U, np.eye(3))
+        assert np.linalg.matrix_rank(th) == 3
+    norms = [np.linalg.norm(generate_subspace_tasks(T=50, D=D, rng=np.random.default_rng(3))[0], axis=1)
+             for D in (5, 120)]
+    assert np.allclose(norms[0], norms[1])
+
+
+def test_syn_is_registered_and_strongly_convex_per_task():
+    import numpy as np
+    from cascader.data import load
+    tasks = load("Syn", seed=0)
+    assert tasks.T == 200 and tasks.d == 40 and tasks.name == "Syn"
+    X = tasks.X_train[0]
+    assert np.linalg.matrix_rank(X.T @ X) == 40      # n_train = 64 > D = 40

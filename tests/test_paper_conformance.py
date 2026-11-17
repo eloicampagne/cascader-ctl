@@ -75,13 +75,14 @@ def test_a_cascade_reaches_the_local_optimum_when_the_budget_is_ample(small):
 # ==========================================================================
 
 def test_the_seven_compared_methods_are_the_seven_in_the_table():
-    assert METHODS == ["Individual", "Star", "RandTree", "Chain",
-                       "CTL-kNN", "CTL-MST", "CTL-MSTc"]
+    assert METHODS == ["Individual", "Star", "RandTree", "Chain", "Chain-2opt",
+                       "CTL-MST", "CTL-Forest"]
 
 
 def test_geometry_aware_methods_get_sle_and_the_others_uniform(small, cfg):
     """The pairing stated in the baselines paragraph, method by method."""
-    assert SLE_METHODS == frozenset({"Chain", "CTL-kNN", "CTL-MST", "CTL-MSTc"})
+    assert SLE_METHODS == frozenset({"Chain", "Chain-2opt", "CTL-MST", "CTL-Forest",
+                                     "kNN-BFS", "CTL-kNN", "CTL-MSTc"})
     B = 4 * small.T
     for method in ("Star", "RandTree"):
         tree = build_structure(method, small, cfg, np.random.default_rng(0))
@@ -239,7 +240,7 @@ def test_regression_collections_carry_no_l2():
 
 def test_the_task_type_of_each_collection_matches_the_table():
     kinds = {n: c.task for n, c in CONFIGS.items()}
-    assert kinds == {"Syn-10": "regression", "WEAVE-UK": "regression",
+    assert kinds == {"Syn": "regression", "Syn-10": "regression", "WEAVE-UK": "regression",
                      "FMNIST": "classification", "CIFAR": "classification",
                      "CelebA": "classification"}
 

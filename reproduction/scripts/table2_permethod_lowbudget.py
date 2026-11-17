@@ -15,6 +15,7 @@ collection a l'autre.
     python3.12 table2_permethod_lowbudget.py
     python3.12 table2_permethod_lowbudget.py --datasets Syn-10 --eval-seeds 2 --tune-seeds 1
 """
+import os
 import argparse
 import time
 from pathlib import Path
@@ -40,7 +41,10 @@ HIGHER = {"FMNIST", "CIFAR", "CelebA"}
 def etas_for(dataset, model="linear"):
     """La grille, augmentee du pas publie pour ce jeu et cette classe de modele."""
     pub = CONFIG[dataset]["eta"] if model == "linear" else MLP_ETA[dataset]
-    return tuple(sorted(set(GRID) | {round(float(pub), 8)}))
+    extra = set()
+    if dataset == "Syn-10" and model == "linear" and os.environ.get("CTL_SYN") == "subspace":
+        extra = {0.7, 1.0, 2.0}      # sur Syn, les baselines choisissaient 0.5, la borne de la grille
+    return tuple(sorted(set(GRID) | {round(float(pub), 8)} | extra))
 
 
 def budgets_for(dataset):

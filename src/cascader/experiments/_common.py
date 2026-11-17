@@ -70,7 +70,9 @@ def etas_for(collection: str, model: str = "linear") -> tuple:
     """The grid, augmented with the published rate for this collection and model."""
     cfg = get_config(collection)
     published = cfg.eta if model == "linear" else cfg.mlp_eta
-    return tuple(sorted(set(ETA_GRID) | {round(float(published), 10)}))
+    # On Syn the linear baselines select 0.5, the end of the grid: extend it there.
+    extra = {0.7, 1.0, 2.0} if (collection == "Syn" and model == "linear") else set()
+    return tuple(sorted(set(ETA_GRID) | {round(float(published), 10)} | extra))
 
 
 def evaluate(models, tasks) -> float:

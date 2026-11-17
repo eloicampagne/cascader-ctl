@@ -60,7 +60,11 @@ def main():
             factory = lambda: make_model(mc, d)
             for B in Bs:
                 for vi, (struct, alloc_kind) in enumerate(VARIANTS):
-                    torch.manual_seed(1000 * rep + vi)
+                    torch.manual_seed(1000 * rep)   # meme initialisation pour les quatre bras :
+                    # indexer la graine sur vi donnait a chaque variante un
+                    # tirage different, si bien qu'a B = T, ou SLE et uniforme
+                    # coincident exactement, les deux colonnes differaient quand
+                    # meme. L'ecart mesure etait alors de l'initialisation.
                     rng = np.random.default_rng(60_000 + rep)   # same random tree per (rep,B)
                     models = run_variant(struct, alloc_kind, nodes, Xn_tr, yn_tr,
                                          D_grad, seed, B, eta, cfg, factory, rng)

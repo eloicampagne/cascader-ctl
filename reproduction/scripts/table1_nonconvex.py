@@ -93,7 +93,7 @@ MLP_ETA = {"Syn-10": 0.2, "WEAVE-UK": 0.2, "FMNIST": 0.2, "CIFAR": 0.1, "CelebA"
 
 METHODS = ["Individual", "Star", "RandTree", "Chain",
            "CTL-kNN", "CTL-MST", "CTL-MSTc"]
-SLE_METHODS = {"Chain", "CTL-kNN", "CTL-MST", "CTL-MSTc"}   # get SLE allocation
+SLE_METHODS = {"Chain", "Chain-2opt", "CTL-kNN", "CTL-MST", "CTL-MSTc", "CTL-Forest"}   # get SLE allocation
 
 N_SEEDS_IMG = 20      # matches the published n_repeats
 N_SEEDS_SYN = 20
@@ -203,6 +203,16 @@ def tree_chain(nodes, D, seed):
     return root_tree(edges, seed)
 
 
+def tree_chain_2opt(nodes, D, seed):
+    """Greedy chain shortened by 2-opt, seed kept at the start (twoopt.py)."""
+    from twoopt import two_opt_order
+    _, edges, _ = tree_chain(nodes, D, seed)
+    idx = {v: i for i, v in enumerate(nodes)}
+    p = [idx[seed]] + [idx[v] for _, v in edges]
+    p = two_opt_order(p, D)
+    return root_tree([(nodes[p[k]], nodes[p[k + 1]]) for k in range(len(p) - 1)], seed)
+
+
 def tree_knn(nodes, D, seed, k=20):
     """BFS spanning tree over the symmetrised k-NN graph from the seed
     (build_knn_tree uses k=20 in the notebooks)."""
@@ -231,6 +241,88 @@ def tree_knn(nodes, D, seed, k=20):
             _, u, v = best
             visited.add(v); edges.append((u, v)); q.append(v)
     return root_tree(edges, seed)
+
+
+def tree_forest(nodes, D, seed, z=2.0, cut=None):
+    """Foret de cascades : brancher entre grappes, chainer dedans.
+
+    Le diagnostic de l'annexe separe deux effets. Sous la frontiere, ce qui
+    compte est la vitesse de recuperation apres un saut inter-grappes, et un
+    arbre la fournit ; au-dessus, c'est l'accumulation le long d'une remontee
+    homogene, et seule une chaine en dispose. Rien n'oblige a employer la meme
+    topologie aux deux echelles.
+
+    On coupe les aretes du MST plus longues que moyenne + z ecarts types, le
+    critere de Zahn, ce qui ne rajoute aucun hyperparametre a regler : les
+    composantes obtenues sont reliees par ces memes aretes, les plus courtes
+    liaisons disponibles, et chaque composante est rebatie en chemin glouton
+    depuis son point d'entree. Si aucune arete ne depasse le seuil, la foret
+    degenere en une chaine unique, ce qui est le comportement voulu sur une
+    collection sans structure de grappes.
+    """
+    idx = {v: i for i, v in enumerate(nodes)}
+    edges = mst_from_distance_matrix(nodes, D)
+    if cut is None:
+        lens = np.array([D[idx[u], idx[v]] for u, v in edges], dtype=float)
+        thr = lens.mean() + z * lens.std()
+        keep = [e for e, l in zip(edges, lens) if l <= thr]
+        bridges = [e for e, l in zip(edges, lens) if l > thr]
+    else:
+        cs = set(map(frozenset, cut))
+        keep = [e for e in edges if frozenset(e) not in cs]
+        bridges = [e for e in edges if frozenset(e) in cs]
+
+    adj = defaultdict(list)
+    for u, v in keep:
+        adj[u].append(v)
+        adj[v].append(u)
+    comp_of, comps = {}, []
+    for st in nodes:
+        if st in comp_of:
+            continue
+        c, q = [], deque([st])
+        comp_of[st] = len(comps)
+        while q:
+            u = q.popleft()
+            c.append(u)
+            for w in adj[u]:
+                if w not in comp_of:
+                    comp_of[w] = len(comps)
+                    q.append(w)
+        comps.append(c)
+
+    # squelette : les aretes coupees, orientees depuis la composante de la racine
+    badj = defaultdict(list)
+    for u, v in bridges:
+        badj[comp_of[u]].append((comp_of[v], u, v))
+        badj[comp_of[v]].append((comp_of[u], v, u))
+    entry = {comp_of[seed]: seed}
+    dir_edges, seen, q = [], {comp_of[seed]}, deque([comp_of[seed]])
+    while q:
+        a = q.popleft()
+        for b, u, v in badj[a]:
+            if b in seen:
+                continue
+            seen.add(b)
+            entry[b] = v
+            dir_edges.append((u, v))
+            q.append(b)
+
+    for i, c in enumerate(comps):
+        if i not in entry:            # composante isolee, rattachee au plus proche
+            j = min(range(len(nodes)), key=lambda k: min(
+                D[idx[nodes[k]], idx[w]] for w in c) if comp_of[nodes[k]] in entry
+                else np.inf)
+            u = nodes[j]
+            v = min(c, key=lambda w: D[idx[u], idx[w]])
+            entry[i] = v
+            dir_edges.append((u, v))
+        if len(c) > 1:
+            sub = sorted(c, key=lambda v: (v != entry[i], v))
+            sD = D[np.ix_([idx[v] for v in sub], [idx[v] for v in sub])]
+            _, e, _ = tree_chain(sub, sD, entry[i])
+            dir_edges += e
+    return seed, dir_edges, {v: u for u, v in dir_edges}
 
 
 def tree_mstc(nodes, D, seed, X, y, lam):
@@ -327,12 +419,16 @@ def run_method(method, nodes, X_tr, y_tr, X_prox, y_prox, D, seed, B, eta,
         root, dir_edges, _ = tree_random(nodes, D, seed, rng)
     elif method == "Chain":
         root, dir_edges, _ = tree_chain(nodes, D, seed)
+    elif method == "Chain-2opt":
+        root, dir_edges, _ = tree_chain_2opt(nodes, D, seed)
     elif method == "CTL-kNN":
         root, dir_edges, _ = tree_knn(nodes, D, seed)
     elif method == "CTL-MST":
         root, dir_edges, _ = tree_mst(nodes, D, seed)
     elif method == "CTL-MSTc":
         root, dir_edges, _ = tree_mstc(nodes, D, seed, X_prox, y_prox, lam)
+    elif method == "CTL-Forest":
+        root, dir_edges, _ = tree_forest(nodes, D, seed)
     else:
         raise ValueError(method)
 
@@ -457,12 +553,21 @@ def weave_tasks():
     return _WEAVE["w"]
 
 
-def syn_tasks(seed, T=200, d=3, K=5, tau=10.0, tau_b=10.0, sigma=5.0,
+def syn_tasks(seed, T=200, d=None, K=5, tau=None, tau_b=10.0, sigma=5.0,
               n_tr=64, n_te=128):
+    """Syn-10 par defaut ; avec CTL_SYN=subspace, le generateur de Syn (cascader,
+    parametres dans un sous-espace de dimension 3 de R^d, d=40, tau_within=3)."""
     rng = np.random.default_rng(seed)
-    _, _, _, (Xt, yt), (Xe, ye), _ = generate_clustered_tasks(
-        T=T, d=d, n_train=n_tr, n_test=n_te, n_clusters=K,
-        tau_within=tau, tau_between=tau_b, sigma=sigma, rng=rng)
+    if os.environ.get("CTL_SYN") == "subspace":
+        sys.path.insert(0, str(HERE.parents[1] / "src"))
+        from cascader.data.synthetic import generate_subspace_tasks
+        _, _, (Xt, yt), (Xe, ye), _ = generate_subspace_tasks(
+            T=T, D=40 if d is None else d, r=3, n_train=n_tr, n_test=n_te, n_clusters=K,
+            tau_within=3.0 if tau is None else tau, tau_between=tau_b, sigma=sigma, rng=rng)
+    else:
+        _, _, _, (Xt, yt), (Xe, ye), _ = generate_clustered_tasks(
+            T=T, d=3 if d is None else d, n_train=n_tr, n_test=n_te, n_clusters=K,
+            tau_within=10.0 if tau is None else tau, tau_between=tau_b, sigma=sigma, rng=rng)
     nodes = list(range(T))
     X_raw = {v: Xt[v] for v in nodes}
     Xn_tr, yn_tr, Xn_te, stats = {}, {}, {}, {}

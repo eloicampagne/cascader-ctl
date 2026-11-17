@@ -35,11 +35,38 @@ loaders, tree builders, the cascade loop and the allocators.
 | `scale_tasks.py`, `large_t_chain_vs_mst.py` | `cascader scaling` |
 | `weave_tune_on_validation.py` | `cascader.data.weave_collection(val_size=...)` |
 | `exact_root.py` | `cascader.methods`, root initialized at its least-squares solution |
+| `stronger_baselines.py` | `cascader.methods`, Star with an exact root or momentum, Individual with momentum, water-filling allocation |
+| `syn/syn_suite.py`, `syn/main_ext.py`, `syn/main_exact.py` | `cascader main-table` on `load("Syn")` |
+| `syn/mst_depth.py` | `cascader.trees`, depth of CTL-MST up to $T=10000$ |
 
 The rest have no packaged equivalent. They cover the pretrained-feature and
 foundation-model studies, the M5 hierarchy, structural heterogeneity, the
 parallelism measurements, the alternative distance audits and several
 exploratory studies.
+
+## Scripts added for the current version
+
+Synthetic dataset. The scripts here generate Syn-10 by default; set
+`CTL_SYN=subspace` to use Syn, the subspace generator of the paper ($d=40$, $r=3$).
+`syn/` holds the Syn suite, which imports the package from `../../src`:
+`syn_suite.py` runs the main tables, the closed forms, the pooled model, the
+tree--chain grid and the mechanism data, `syn_report.py` summarizes them and
+`emit_syn_rows.py` writes the table rows into the paper source given by `PAPER_TEX`.
+
+| script | appendix |
+|---|---|
+| `boundary_phase.py`, `boundary_phase_fig.py` | measured boundary of the CTL-vs-direct condition |
+| `syn/precond_control.py`, `syn/precond_report.py`, `syn/emit_precond_tables.py` | preconditioned refinements and task conditioning |
+| `mechanism_individual.py`, `mechanism_edge_vs_depth_2opt.py`, `mechanism_logratio.py` | parent distance against depth |
+| `fig_depth_diagnostics.py`, `mlp_depth_syn.py`, `mlp_depth_syn_ind.py`, `mlp_depth_2opt.py` | depth diagnostics |
+| `tworegime_configs.py`, `tworegime_final.py`, `tworegime_zahn_local.py`, `zahn_local.py` | tree--chain grid, local and global cut criteria |
+| `proxy_ablation_floor1.py`, `emit_proxy_ablation_table.py` | distance proxies |
+| `fig_robustness_sweep.py`, `fig_robustness_plot.py` | robustness to the generator |
+| `root_tally.py` | sensitivity to root selection |
+| `twoopt.py` | 2-opt exchanges imported by `table1_nonconvex.py` |
+
+Figures go to `FIG_DIR` (default `figures/`). `syn/precond_control.py` reads the
+image datasets from `CASCADER_DATA_DIR`.
 
 ## One caveat
 
