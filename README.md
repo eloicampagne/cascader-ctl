@@ -5,12 +5,6 @@ them, CTL arranges the tasks in a rooted tree, trains the root, and lets each
 task inherit its parent's parameters before spending its own share. Nothing is
 trained twice and nothing starts from scratch except the root.
 
-## Install
-
-```bash
-pip install cascader-ctl
-```
-
 ## Quick start
 
 ```python
@@ -133,7 +127,7 @@ first run -- but sample results are not the paper's numbers.
 ## Tests
 
 ```bash
-pip install "cascader-ctl[dev]"
+pip install -e ".[dev]"
 pytest
 ```
 

@@ -1,12 +1,14 @@
 """Every timing reported in the paper, measured with the packaged implementation.
 
-Three measurements on the clustered synthetic generator (Syn-10 geometry):
+Three measurements on synthetic clustered regression tasks:
 
-  construction  graph time (gradient proxy, pairwise distances, medoid root,
+  construction  (Syn generator, D=40) graph time (gradient proxy, pairwise distances, medoid root,
                 MST) against training time of the linear cascade at B=2000.
-  scaling       construction time of the MST, the Chain and CTL-MSTc as T grows,
+  scaling       (Syn generator, D=40) construction time of the MST, the Chain and CTL-MSTc as T grows,
                 with the fitted log-log slope over the largest sizes.
-  parallel      wall-clock time of CTL-MST at P workers, one thread per task of a
+  twoopt        (Syn generator, D=40) time of the 2-opt exchanges of Chain-2opt,
+                that is build_chain_2opt minus build_chain on the same distances.
+  parallel      (clustered generator, d=100, MLP) wall-clock time of CTL-MST at P workers, one thread per task of a
                 depth level and a barrier between levels, under the floor-one
                 allocation of the main tables.
 
@@ -33,18 +35,25 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 from cascader.allocation import sle_alloc, uniform_alloc  # noqa: E402
 from cascader.cascade import cascade_train  # noqa: E402
 from cascader.config import get_config  # noqa: E402
-from cascader.data.synthetic import generate_clustered_tasks  # noqa: E402
+from cascader.data.synthetic import generate_clustered_tasks, generate_subspace_tasks  # noqa: E402
 from cascader.data.transforms import normalize_xy  # noqa: E402
 from cascader.distances import compute_gradient_distance  # noqa: E402
 from cascader.models import model_factory  # noqa: E402
 from cascader.rooting import medoid_root  # noqa: E402
-from cascader.trees import build_chain, build_mst, build_mstc  # noqa: E402
+from cascader.trees import build_chain, build_chain_2opt, build_mst, build_mstc  # noqa: E402
 
 
-def tasks(T, seed, d=3, n_train=64):
+SYN_D = 40  # input dimension of the Syn collection (subspace generator)
+
+
+def tasks(T, seed, d=SYN_D, n_train=64, gen="syn"):
     rng = np.random.default_rng(seed)
-    _, _, _, (Xt, yt), _, _ = generate_clustered_tasks(T=T, d=d, n_train=n_train,
-                                                         n_test=1, rng=rng)
+    if gen == "syn":
+        _, _, (Xt, yt), _, _ = generate_subspace_tasks(T=T, D=d, n_train=n_train,
+                                                       n_test=1, rng=rng)
+    else:
+        _, _, _, (Xt, yt), _, _ = generate_clustered_tasks(T=T, d=d, n_train=n_train,
+                                                             n_test=1, rng=rng)
     nodes = list(range(T))
     X, y = {}, {}
     for v in nodes:
@@ -53,7 +62,7 @@ def tasks(T, seed, d=3, n_train=64):
 
 
 def part_construction(Ts, seeds, B=2000):
-    cfg = get_config("Syn-10")
+    cfg = get_config("Syn")
     out = []
     for T in Ts:
         g, tr = [], []
@@ -68,7 +77,7 @@ def part_construction(Ts, seeds, B=2000):
                               root_frac=cfg.root_frac)
             torch.manual_seed(s)
             t0 = time.perf_counter()
-            cascade_train(tree, X, y, alloc, cfg.eta, model_factory("linear", 3))
+            cascade_train(tree, X, y, alloc, cfg.eta, model_factory("linear", SYN_D))
             tr.append(time.perf_counter() - t0)
         row = dict(T=T, graph_mean=float(np.mean(g)), graph_se=float(np.std(g, ddof=1) / np.sqrt(len(g))),
                    train_mean=float(np.mean(tr)), train_se=float(np.std(tr, ddof=1) / np.sqrt(len(tr))))
@@ -80,7 +89,7 @@ def part_construction(Ts, seeds, B=2000):
 
 
 def part_scaling(Ts, seeds_for, mstc_max=5000):
-    cfg = get_config("Syn-10")
+    cfg = get_config("Syn")
     out = []
     for T in Ts:
         rows = defaultdict(list)
@@ -102,10 +111,27 @@ def part_scaling(Ts, seeds_for, mstc_max=5000):
     return out
 
 
+def part_twoopt(Ts, seeds_for):
+    out = []
+    for T in Ts:
+        tc, t2 = [], []
+        for s in range(seeds_for(T)):
+            nodes, Xraw, X, y = tasks(T, s)
+            D = compute_gradient_distance(nodes, X, y)
+            root = medoid_root(nodes, Xraw)
+            t0 = time.perf_counter(); build_chain(nodes, D, root); tc.append(time.perf_counter() - t0)
+            t0 = time.perf_counter(); build_chain_2opt(nodes, D, root); t2.append(time.perf_counter() - t0)
+        row = {"T": T, "chain": float(np.median(tc)), "chain_2opt": float(np.median(t2)),
+               "exchanges": float(np.median(t2) - np.median(tc))}
+        print(f"[twoopt] {row}", flush=True)
+        out.append(row)
+    return out
+
+
 def part_parallel(reps=8, T=200, d=100, hidden=256, n_tr=2048, B=2000, eta=0.05,
                   workers=(1, 2, 4, 8)):
     torch.set_num_threads(1)
-    cfg = get_config("Syn-10")
+    cfg = get_config("Syn")
     out = []
 
     def model():
@@ -122,7 +148,7 @@ def part_parallel(reps=8, T=200, d=100, hidden=256, n_tr=2048, B=2000, eta=0.05,
         return m
 
     for rep in range(reps):
-        nodes, Xraw, X, y = tasks(T, 1000 + rep, d=d, n_train=n_tr)
+        nodes, Xraw, X, y = tasks(T, 1000 + rep, d=d, n_train=n_tr, gen="clustered")
         Xt = {v: torch.from_numpy(X[v]).float() for v in nodes}
         yt = {v: torch.from_numpy(y[v]).float() for v in nodes}
         D = compute_gradient_distance(nodes, X, y)
@@ -163,7 +189,7 @@ def part_parallel(reps=8, T=200, d=100, hidden=256, n_tr=2048, B=2000, eta=0.05,
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--part", default="all", choices=("all", "construction", "scaling", "parallel"))
+    ap.add_argument("--part", default="all", choices=("all", "construction", "scaling", "twoopt", "parallel"))
     ap.add_argument("--out", default="timing_results.json")
     a = ap.parse_args()
     res = {}
@@ -172,6 +198,9 @@ def main():
     if a.part in ("all", "scaling"):
         res["scaling"] = part_scaling((200, 500, 1000, 2000, 5000, 10000),
                                       seeds_for=lambda T: 5 if T <= 2000 else 3 if T <= 5000 else 2)
+    if a.part in ("all", "twoopt"):
+        res["twoopt"] = part_twoopt((200, 500, 1000, 2000, 5000, 10000),
+                                    seeds_for=lambda T: 5 if T <= 2000 else 3 if T <= 5000 else 2)
     if a.part in ("all", "parallel"):
         res["parallel"] = part_parallel()
     Path(a.out).write_text(json.dumps(res, indent=1))
