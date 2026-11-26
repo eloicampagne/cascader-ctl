@@ -115,14 +115,14 @@ the scripts that produced them, unmodified and unsupported.
 |---|---|
 | `Syn-10` | generated, nothing to download |
 | `FMNIST`, `CIFAR` | downloaded on first use |
-| `WEAVE-UK` | 50-substation sample bundled; the full 500 are not redistributed |
+| `WEAVE-UK` | 50-feeder sample bundled; the full 500 low-voltage feeders are on [Zenodo](https://doi.org/10.5281/zenodo.21977576) |
 | `CelebA` | not distributed; extract ResNet-18 features yourself |
 
 Point `CASCADER_DATA_DIR` at a directory holding `train_weave_500.csv`,
 `test_weave_500.csv`, `celeba_features/`, and the image caches. Loaders raise
 `MissingDataError` with the exact path and instructions when something is absent.
-WEAVE falls back to the bundled sample automatically, so nothing here blocks a
-first run -- but sample results are not the paper's numbers.
+WEAVE falls back to the bundled sample automatically and warns that it does, so
+nothing here blocks a first run -- but sample results are not the paper's numbers.
 
 ## Tests
 

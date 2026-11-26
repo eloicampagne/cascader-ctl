@@ -7,7 +7,7 @@
 
 Availability differs by collection. Syn (the synthetic dataset of the paper) and
 Syn-10 (its earlier version) are generated. Fashion-MNIST and
-CIFAR-10 download themselves. WEAVE-UK falls back to a bundled 50-substation
+CIFAR-10 download themselves. WEAVE-UK falls back to a bundled 50-feeder
 sample when the full CSVs are absent, and CelebA raises
 :class:`MissingDataError` with instructions -- see :mod:`cascader.data._paths`.
 """
@@ -36,7 +36,7 @@ def load(name: str, seed: int = 0, **kwargs: Any) -> TaskCollection:
     """Load a collection by the name it carries in the paper's tables.
 
     ``seed`` redraws the tasks on the generated and sampled collections. It has
-    no effect on WEAVE-UK, whose panel of substations is fixed; repetitions
+    no effect on WEAVE-UK, whose panel of feeders is fixed; repetitions
     there vary only the initialization.
     """
     if name == "Syn":

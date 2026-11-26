@@ -7,7 +7,7 @@ ONE execution with ONE seeding. Computes, per (regime, B, rep):
 
 Faithful Table 1 protocol of table1_nonconvex.py: gradient distance, raw-feature
 medoid root for the gradient methods, SLE allocation on the tree methods, uniform
-b_seed for Star, B//T for Individual. Geo-MST uses the substation coordinates and
+b_seed for Star, B//T for Individual. Geo-MST uses the feeder coordinates and
 the geographic medoid. Linear and MLP, budgets 500/1000/2000, 20 repetitions.
 Raw per-cell values are written so effect sizes and capped p-values can be
 computed downstream.

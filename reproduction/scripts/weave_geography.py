@@ -2,8 +2,8 @@
 Geography-based spanning tree on WEAVE-UK.
 
 Tests whether the learned task geometry (gradient proxy) beats an informed domain
-prior: a spanning tree built from the physical coordinates of the substations
-rather than from task distances. Substation coordinates come from the WEAVE
+prior: a spanning tree built from the physical coordinates of the feeders
+rather than from task distances. Feeder coordinates come from the WEAVE
 smart-meter parquet (lv_feeder_unique_id -> geometry struct x/y, lon/lat), the
 same source as generate_data.ipynb, cached to weave_coords_local.csv by
 weave_coords_fetch (run once).
@@ -54,7 +54,7 @@ def _load_coords():
 
 
 def geo_distance_matrix(nodes):
-    """Euclidean distance in local meters between substations, aligned to nodes.
+    """Euclidean distance in local meters between feeders, aligned to nodes.
     Returns (D_geo, geo_root, kept_nodes). Nodes without coordinates are dropped."""
     c = _load_coords().set_index("id_unique")
     kept = [v for v in nodes if v in c.index]

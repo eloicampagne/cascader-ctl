@@ -1,7 +1,7 @@
 """Aggregate-as-root gap-filling on WEAVE, against the paper's CTL variants.
 
 Scenario: the total (aggregate) load is metered completely, the individual
-substations are observed only partially, and the goal is to fill the per-node
+feeders are observed only partially, and the goal is to fill the per-node
 gaps. WEAVE is autoregressive (48 consumption lags + calendar) and lagging is
 linear, so the aggregate is a WEAVE task at aggregate scale: same features, same
 model class, homogeneous with the nodes. That makes the fully-observed aggregate a

@@ -1,6 +1,6 @@
 """Where the collections live on disk.
 
-Nothing large travels inside the wheel. The bundled WEAVE sample (50 substations,
+Nothing large travels inside the wheel. The bundled WEAVE sample (50 low-voltage feeders,
 under a megabyte) exists so the tests and the quick-start run offline; the full
 collections are read from a directory the user points at.
 

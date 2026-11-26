@@ -1,17 +1,19 @@
-"""WEAVE-UK: half-hourly electricity demand at 500 UK substations.
+"""WEAVE-UK: half-hourly electricity demand of 500 UK low-voltage feeders.
 
-One task per substation, each an autoregressive forecast from 48 consumption
+One task per feeder, each an autoregressive forecast from 48 consumption
 lags plus calendar features. The tasks are fixed, so repetitions vary only the
 initialization; the panel itself does not resample.
 
 The full collection is 135 MB of CSV and is not distributed with the package.
-A 50-substation sample is bundled so the tests and the quick start run offline
+A 50-feeder sample is bundled so the tests and the quick start run offline
 -- use ``sample=True``, or leave it to the automatic fallback when no data
-directory is configured. Results on the sample are not the paper's numbers.
+directory is configured, which emits a warning. Results on the sample are not
+the paper's numbers.
 """
 
 from __future__ import annotations
 
+import warnings
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
@@ -28,10 +30,13 @@ __all__ = ["load_weave_csv", "weave_collection"]
 
 Array = np.ndarray
 
+# Zenodo record holding train_weave_500.csv and test_weave_500.csv.
+ZENODO_URL = "https://doi.org/10.5281/zenodo.21977576"
+
 _HOW = (
     "WEAVE-UK is not redistributed with the package. Obtain train_weave_500.csv "
-    "and test_weave_500.csv from the authors, or pass sample=True to use the "
-    "bundled 50-substation extract."
+    f"and test_weave_500.csv from Zenodo ({ZENODO_URL}), or pass sample=True "
+    "to use the bundled 50-feeder extract."
 )
 
 
@@ -39,7 +44,7 @@ def load_weave_csv(csv_path: str | Path, node_col: str = "id_unique",
                    y_col: str = "consumption",
                    feature_prefix: str = "consumption_l"
                    ) -> Tuple[Dict, Dict]:
-    """Read one WEAVE CSV into per-substation ``(X, y)`` dicts.
+    """Read one WEAVE CSV into per-feeder ``(X, y)`` dicts.
 
     Features are the lag columns plus four calendar terms derived from the
     timestamp: hour and day-of-week, each as a sine/cosine pair, followed by the
@@ -93,12 +98,12 @@ def weave_collection(path: Optional[str | Path] = None, sample: Optional[bool] =
         Directory holding ``train_weave_500.csv`` and ``test_weave_500.csv``.
         Defaults to :func:`cascader.data._paths.data_dir`.
     sample
-        ``True`` forces the bundled 50-substation extract, ``False`` forbids it.
-        ``None`` uses the full collection when present and falls back to the
-        sample otherwise.
+        ``True`` forces the bundled 50-feeder extract, ``False`` forbids it.
+        ``None`` uses the full collection when present and otherwise falls back
+        to the sample with a warning.
     val_size
         When positive, hold out the first ``val_size`` training rows of each
-        substation as a validation split and train on the rest. Used for
+        feeder as a validation split and train on the rest. Used for
         learning-rate selection, where scoring on the test split would leak: the
         WEAVE tasks are fixed, so a rate chosen on test is a rate chosen on the
         reported number.
@@ -114,6 +119,12 @@ def weave_collection(path: Optional[str | Path] = None, sample: Optional[bool] =
             use_sample = False
         except MissingDataError:
             use_sample = True
+            warnings.warn(
+                "WEAVE-UK data not found: falling back to the bundled 50-feeder "
+                "sample, whose results are not the paper's numbers. Download "
+                f"train_weave_500.csv and test_weave_500.csv from {ZENODO_URL} "
+                "and point CASCADER_DATA_DIR at their directory.",
+                UserWarning, stacklevel=2)
 
     if use_sample:
         base = bundled_dir()

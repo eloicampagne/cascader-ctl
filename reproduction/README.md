@@ -38,6 +38,15 @@ loaders, tree builders, the cascade loop and the allocators.
 | `stronger_baselines.py` | `cascader.methods`, Star with an exact root or momentum, Individual with momentum, water-filling allocation |
 | `syn/syn_suite.py`, `syn/main_ext.py`, `syn/main_exact.py` | `cascader main-table` on `load("Syn")` |
 | `syn/mst_depth.py` | `cascader.trees`, depth of CTL-MST up to $T=10000$ |
+| `repro_main.py` | main tables (linear and MLP) with the current package, WEAVE-UK rate selected on its validation slice |
+| `randchain.py`, `randtree_sle.py` | random chain and RandTree under SLE against Chain and CTL-MST |
+| `contraction.py` | empirical contraction rates of the refinements, linear and MLP |
+| `proxy_true_distance.py` | gradient proxy against the distances between task optima on Synth |
+| `fig_tworegime.py` | tree-chain figure, from `scripts/tworegime_final_raw.csv` |
+| `fig_boundary_setup.py`, `boundary_phase_fig.py` | geometry and boundary of the condition of Theorem 2.4 on noiseless quadratics |
+| `fig_landscapes.py` | schematic of local contraction with unique and multiple minimizers |
+| `syn/fig_syn_tasks.py` | task optima of the Synth generator |
+| `../tworegime_pilot/` | tree-chain grid under variants of the generator ($n=512$, $\sigma=0.5$) |
 
 The rest have no packaged equivalent. They cover the pretrained-feature and
 foundation-model studies, the M5 hierarchy, structural heterogeneity, the

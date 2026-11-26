@@ -32,7 +32,7 @@ def main(seed=0):
         for k in range(clusters.max() + 1):
             m = clusters == k
             ax.scatter(P[m, 0], P[m, 1], s=9, color=COLORS[k], edgecolor="white", linewidth=0.3, zorder=2)
-        ax.set_title(rf"$\tau_{{\mathrm{{within}}}}={tw:g}$" + (" (Syn)" if tw == 3 else ""), color=INK, fontsize=8)
+        ax.set_title(rf"$\tau_{{\mathrm{{within}}}}={tw:g}$" + (" (Synth)" if tw == 3 else ""), color=INK, fontsize=8)
         ax.set_xticks([]); ax.set_yticks([])
         ax.set_aspect("equal", adjustable="datalim")
     out = Path(__import__("os").environ.get("FIG_DIR", "figures")) / "synthetic_tasks.pdf"
