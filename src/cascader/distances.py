@@ -22,6 +22,10 @@ from scipy.spatial.distance import cdist
 
 __all__ = [
     "compute_gradient_distance",
+    "gradient_proxies",
+    "gradient_geometry",
+    "gram_euclidean",
+    "DENSE_MAX",
     "compute_feature_distance",
     "compute_target_distance",
     "compute_model_distance",
@@ -59,9 +63,69 @@ def _pairwise_euclidean(E: Array) -> Array:
     return D
 
 
+_BLOCK_ENTRIES = 8_000_000
+
+
+def gram_euclidean(E: Array) -> Array:
+    r"""Euclidean distances between the rows of ``E`` through the Gram matrix.
+
+    Uses :math:`\lVert a-b\rVert^2 = \lVert a\rVert^2 + \lVert b\rVert^2 - 2a^\top b`,
+    so the work is one matrix product, which BLAS runs far faster than the
+    pairwise loop of :func:`scipy.spatial.distance.cdist`. The rows are cast to
+    float64 first: in float32 the cancellation for nearby rows reaches about
+    :math:`10^{-5}` and changes some trees, whereas in float64 the result matches
+    ``cdist`` to about :math:`10^{-14}` and gives the same trees on every
+    collection of the paper. The output is exactly symmetric with a zero diagonal.
+
+    The result is assembled in place over blocks of rows, so the peak memory is
+    one ``(T, T)`` array plus one block.
+    """
+    E = np.asarray(E, dtype=np.float64)
+    T = E.shape[0]
+    sq = np.einsum("ij,ij->i", E, E)
+    D = E @ E.T
+    bs = max(1, _BLOCK_ENTRIES // max(1, T))
+    for s in range(0, T, bs):
+        blk = D[s:s + bs]
+        blk *= 2.0
+        np.subtract(sq[s:s + bs, None] + sq[None, :], blk, out=blk)
+        np.maximum(blk, 0.0, out=blk)
+        np.sqrt(blk, out=blk)
+    # Mirror the upper triangle so that symmetry is exact whatever the BLAS.
+    for s in range(0, T, bs):
+        D[s:s + bs, :s] = D[:s, s:s + bs].T
+    np.fill_diagonal(D, 0.0)
+    return D
+
+
+#: Largest number of tasks for which the loaders store the dense ``(T, T)``
+#: distance matrix (about 3.2 GB in float64 at this size). Above it, a
+#: collection keeps only the gradient proxies and the cascade is built from
+#: nearest-neighbour lists (:mod:`cascader.neighbors`).
+DENSE_MAX = 20000
+
+
 # --------------------------------------------------------------------------
 # Optimization-geometry distances
 # --------------------------------------------------------------------------
+
+def gradient_proxies(
+    nodes: Sequence[Hashable],
+    X: NodeDict,
+    y: NodeDict,
+    normalize: bool = True,
+) -> Array:
+    r"""Gradient proxies :math:`g_v = X_v^\top y_v`, one row per task, as float64.
+
+    With ``normalize=True`` each row is scaled to unit :math:`\ell_2` norm. The
+    product and the normalization run in the dtype of the data, as they always
+    have, and only the result is cast, so the distances are unchanged.
+    """
+    G = np.stack([np.asarray(X[v]).T @ np.asarray(y[v]).reshape(-1) for v in nodes])
+    if normalize:
+        G = G / (np.linalg.norm(G, axis=1, keepdims=True) + 1e-8)
+    return np.asarray(G, dtype=np.float64)
+
 
 def compute_gradient_distance(
     nodes: Sequence[Hashable],
@@ -76,12 +140,27 @@ def compute_gradient_distance(
     With ``normalize=True`` (the paper's default and the setting behind every
     reported result) each :math:`g_v` is scaled to unit :math:`\ell_2` norm
     first, so the distance compares gradient *directions* and is invariant to
-    the per-task target scale.
+    the per-task target scale. Distances are computed by :func:`gram_euclidean`.
     """
-    G = np.stack([np.asarray(X[v]).T @ np.asarray(y[v]).reshape(-1) for v in nodes])
-    if normalize:
-        G = G / (np.linalg.norm(G, axis=1, keepdims=True) + 1e-8)
-    return _pairwise_euclidean(G)
+    return gram_euclidean(gradient_proxies(nodes, X, y, normalize))
+
+
+def gradient_geometry(
+    nodes: Sequence[Hashable],
+    X: NodeDict,
+    y: NodeDict,
+    dense_max: int | None = None,
+):
+    """Return ``(D, G)``: the dense gradient distance and the proxies.
+
+    ``D`` is ``None`` when the collection has more than ``dense_max`` tasks
+    (default :data:`DENSE_MAX`); the cascade is then built from neighbour lists
+    over ``G``, without ever forming the ``(T, T)`` matrix.
+    """
+    G = gradient_proxies(nodes, X, y)
+    limit = DENSE_MAX if dense_max is None else dense_max
+    D = gram_euclidean(G) if len(G) <= limit else None
+    return D, G
 
 
 def compute_model_distance(

@@ -32,7 +32,9 @@ class TaskCollection:
         Per-task arrays. Training features are what the distance and the tree
         are computed from; nothing reads the test split before evaluation.
     D
-        Symmetric ``(T, T)`` distance matrix aligned with ``nodes``.
+        Symmetric ``(T, T)`` distance matrix aligned with ``nodes``, or ``None``
+        for collections larger than :data:`cascader.distances.DENSE_MAX`, which
+        are built from nearest-neighbour lists over ``proxies``.
     root
         The task the cascade starts from.
     task
@@ -43,6 +45,9 @@ class TaskCollection:
         in the units of the data.
     name
         Collection label, used in reports.
+    proxies
+        ``(T, p)`` gradient proxies aligned with ``nodes``, from which ``D`` is
+        computed. Required when ``D`` is ``None``.
     """
 
     nodes: List[Node]
@@ -50,12 +55,13 @@ class TaskCollection:
     y_train: Dict[Node, Array]
     X_test: Dict[Node, Array]
     y_test: Dict[Node, Array]
-    D: Array
+    D: Optional[Array]
     root: Node
     task: str = "regression"
     stats: Optional[Dict[Node, Mapping[str, Array]]] = None
     name: str = ""
     meta: dict = field(default_factory=dict)
+    proxies: Optional[Array] = None
 
     @property
     def T(self) -> int:

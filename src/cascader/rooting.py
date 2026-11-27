@@ -28,7 +28,6 @@ from collections import defaultdict, deque
 from typing import Dict, Hashable, Iterable, Sequence, Tuple
 
 import numpy as np
-from scipy.spatial.distance import cdist
 
 Array = np.ndarray
 Node = Hashable
@@ -56,8 +55,28 @@ def medoid_root(nodes: Sequence[Node], X: Dict[Node, Array]) -> Node:
     """
     nodes = list(nodes)
     means = np.stack([np.asarray(X[v], dtype=float).mean(axis=0) for v in nodes])
-    D = cdist(means, means)
-    return nodes[int(np.argmin(D.sum(axis=1)))]
+    return nodes[int(np.argmin(_distance_row_sums(means)))]
+
+
+def _distance_row_sums(E: Array, max_entries: int = 8_000_000) -> Array:
+    """``sum_j ||E_i - E_j||`` for every row ``i``, by blocks of rows.
+
+    Same Gram-matrix computation as :func:`cascader.distances.gram_euclidean`,
+    but never holds more than ``max_entries`` distances at once, so the medoid
+    costs ``O(T)`` memory at any number of tasks.
+    """
+    E = np.asarray(E, dtype=np.float64)
+    T = E.shape[0]
+    sq = np.einsum("ij,ij->i", E, E)
+    bs = max(1, max_entries // max(1, T))
+    sums = np.empty(T)
+    for s in range(0, T, bs):
+        r = slice(s, min(T, s + bs))
+        D2 = sq[r, None] + sq[None, :] - 2.0 * (E[r] @ E.T)
+        np.maximum(D2, 0.0, out=D2)
+        D2[np.arange(D2.shape[0]), np.arange(s, s + D2.shape[0])] = 0.0
+        sums[r] = np.sqrt(D2).sum(axis=1)
+    return sums
 
 
 def distance_medoid(nodes: Sequence[Node], D: Array) -> Node:

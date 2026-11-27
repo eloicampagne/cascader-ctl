@@ -124,6 +124,34 @@ Point `CASCADER_DATA_DIR` at a directory holding `train_weave_500.csv`,
 WEAVE falls back to the bundled sample automatically and warns that it does, so
 nothing here blocks a first run -- but sample results are not the paper's numbers.
 
+## Large collections
+
+Distances between gradient proxies are computed through the Gram matrix in
+float64, which gives the same trees as a pairwise loop on every collection of
+the paper and is much faster. Up to `cascader.distances.DENSE_MAX` tasks (20000)
+the loaders store the dense `(T, T)` matrix, which takes `8 T^2` bytes (3.2 GB
+at 20000). Above it they keep only the proxies, and Chain, Chain-2opt, CTL-MST
+and CTL-Forest are built from the 20 nearest neighbours of each task
+(`cascader.neighbors`), which needs `O(T k)` memory. Time stays quadratic: the
+neighbour search and the medoid root both cost `O(T^2 d)`.
+
+The neighbour lists are exact by default. Chain is then the dense Chain, and
+CTL-MST and CTL-Forest are the dense trees whenever every MST edge joins two
+neighbours (on Synth up to 20000 tasks, and on four of five CIFAR-10 seeds
+checked; one edge differed on the fifth). HNSW is faster and opt-in:
+
+```bash
+pip install -e ".[ann]"                     # hnswlib
+```
+```python
+tasks.meta["neighbours"] = "hnsw"
+```
+
+It keeps the MST almost unchanged, but one missed neighbour diverts the rest of
+a greedy Chain, which then differs from the exact one. Chain-2opt uses 2-opt
+restricted to neighbour lists, which reaches a different local optimum of
+similar length; its error can differ by a few percent from the dense Chain-2opt.
+
 ## Tests
 
 ```bash

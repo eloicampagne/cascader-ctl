@@ -22,7 +22,7 @@ from typing import Optional, Tuple
 
 import numpy as np
 
-from ..distances import compute_gradient_distance
+from ..distances import gradient_geometry
 from ..rooting import medoid_root
 from ..tasks import TaskCollection
 from .transforms import normalize_xy
@@ -85,12 +85,12 @@ def syn_collection(seed: int = 0, T: int = 200, d: int = 3, n_clusters: int = 5,
         stats[v] = st
         X_te[v] = (Xe[v] - st["X_mean"]) / st["X_std"]
 
-    D = compute_gradient_distance(nodes, X_tr, y_tr)
+    D, G = gradient_geometry(nodes, X_tr, y_tr)
     return TaskCollection(
         nodes=nodes, X_train=X_tr, y_train=y_tr, X_test=X_te,
         y_test={v: ye[v] for v in nodes}, D=D,
         root=medoid_root(nodes, X_raw), task="regression", stats=stats,
-        name="Syn-10", meta={"cluster_ids": clusters, "seed": seed})
+        name="Syn-10", meta={"cluster_ids": clusters, "seed": seed}, proxies=G)
 
 
 def generate_subspace_tasks(T: int = 200, D: int = 40, r: int = 3, n_train: int = 64,
@@ -150,9 +150,9 @@ def subspace_collection(seed: int = 0, T: int = 200, D: int = 40, r: int = 3,
         X_tr[v], y_tr[v], st = normalize_xy(Xt[v], yt[v])
         stats[v] = st
         X_te[v] = (Xe[v] - st["X_mean"]) / st["X_std"]
-    Dm = compute_gradient_distance(nodes, X_tr, y_tr)
+    Dm, G = gradient_geometry(nodes, X_tr, y_tr)
     return TaskCollection(
         nodes=nodes, X_train=X_tr, y_train=y_tr, X_test=X_te,
         y_test={v: ye[v] for v in nodes}, D=Dm,
         root=medoid_root(nodes, X_raw), task="regression", stats=stats,
-        name="Syn", meta={"cluster_ids": clusters, "seed": seed})
+        name="Syn", meta={"cluster_ids": clusters, "seed": seed}, proxies=G)

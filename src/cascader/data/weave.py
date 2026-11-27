@@ -20,7 +20,7 @@ from typing import Dict, Optional, Tuple
 import numpy as np
 import pandas as pd
 
-from ..distances import compute_gradient_distance
+from ..distances import gradient_geometry
 from ..rooting import medoid_root
 from ..tasks import TaskCollection
 from ._paths import MissingDataError, bundled_dir, data_dir, require
@@ -153,10 +153,11 @@ def weave_collection(path: Optional[str | Path] = None, sample: Optional[bool] =
         stats[v] = st
         X_te[v] = (Xte_raw[v] - st["X_mean"]) / st["X_std"]
 
+    D, G = gradient_geometry(nodes, X_tr, y_tr)
     coll = TaskCollection(
         nodes=nodes, X_train=X_tr, y_train=y_tr, X_test=X_te,
         y_test={v: yte_raw[v] for v in nodes},
-        D=compute_gradient_distance(nodes, X_tr, y_tr),
+        D=D, proxies=G,
         root=medoid_root(nodes, {v: Xtr_raw[v] for v in nodes}),
         task="regression", stats=stats, name=name,
         meta={"sample": use_sample, "val_size": val_size})

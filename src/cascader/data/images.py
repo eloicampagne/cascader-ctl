@@ -19,7 +19,7 @@ from typing import Dict, Optional, Tuple
 
 import numpy as np
 
-from ..distances import compute_gradient_distance
+from ..distances import gradient_geometry
 from ..rooting import medoid_root
 from ..tasks import TaskCollection
 from ._paths import data_dir, require
@@ -180,10 +180,11 @@ def image_collection(dataset: str, seed: int = 0, T: int = 200, n_clusters: int 
     nodes = list(range(T))
     X_tr = {v: Xt[v] for v in nodes}
     y_tr = {v: yt[v] for v in nodes}
+    D, G = gradient_geometry(nodes, X_tr, y_tr)
     return TaskCollection(
         nodes=nodes, X_train=X_tr, y_train=y_tr,
         X_test={v: Xe[v] for v in nodes}, y_test={v: ye[v] for v in nodes},
-        D=compute_gradient_distance(nodes, X_tr, y_tr),
+        D=D, proxies=G,
         root=medoid_root(nodes, X_tr), task="classification",
         name=dataset, meta={"cluster_ids": clusters, "seed": seed})
 
@@ -248,8 +249,9 @@ def celeba_collection(seed: int = 0, n_tasks: int = 400, n_clusters: int = 5,
         v += 1
 
     nodes = list(X_tr)
+    D, G = gradient_geometry(nodes, X_tr, y_tr)
     return TaskCollection(
         nodes=nodes, X_train=X_tr, y_train=y_tr, X_test=X_te, y_test=y_te,
-        D=compute_gradient_distance(nodes, X_tr, y_tr),
+        D=D, proxies=G,
         root=medoid_root(nodes, X_tr), task="classification",
         name="CelebA", meta={"seed": seed, "requested_tasks": n_tasks})

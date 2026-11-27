@@ -28,6 +28,7 @@ import numpy as np
 import torch.nn as nn
 
 from .allocation import individual_alloc, sle_alloc, uniform_alloc
+from .neighbors import EdgeLengths, build_knn_structure, knn_lists
 from .cascade import cascade_train, independent_train
 from .config import DatasetConfig
 from .tasks import TaskCollection
@@ -55,6 +56,8 @@ def build_structure(method: str, tasks: TaskCollection, cfg: DatasetConfig,
     """
     if method == "Individual":
         raise ValueError("Individual has no cascade structure")
+    if tasks.D is None:
+        return _build_from_neighbours(method, tasks)
     try:
         builder = CONSTRUCTIONS[method]
     except KeyError:
@@ -77,6 +80,28 @@ def build_structure(method: str, tasks: TaskCollection, cfg: DatasetConfig,
     return tree
 
 
+def _build_from_neighbours(method: str, tasks: TaskCollection) -> RootedTree:
+    """Tree of a collection without dense distances, from neighbour lists (cached)."""
+    if tasks.proxies is None:
+        raise ValueError("a collection without D must carry its gradient proxies")
+    cache = tasks.__dict__.setdefault("_tree_cache", {})
+    key = (method, tasks.root, "knn")
+    tree = cache.get(key)
+    if tree is None:
+        lab = tasks.__dict__.get("_knn_lists")
+        if lab is None and method != "Star":
+            lab = knn_lists(tasks.proxies, method=tasks.meta.get("neighbours", "exact"))
+            tasks.__dict__["_knn_lists"] = lab
+        tree = build_knn_structure(method, tasks.nodes, tasks.proxies, tasks.root, lab=lab)
+        cache[key] = tree
+    return tree
+
+
+def _edge_lengths(tasks: TaskCollection):
+    """``D`` when the collection has it, otherwise lengths computed from the proxies."""
+    return tasks.D if tasks.D is not None else EdgeLengths(tasks.proxies)
+
+
 def allocate(method: str, tree: RootedTree, tasks: TaskCollection, B: int,
              cfg: DatasetConfig, regime: Optional[str] = None,
              allocation: Optional[str] = None) -> Dict[Node, int]:
@@ -87,7 +112,7 @@ def allocate(method: str, tree: RootedTree, tasks: TaskCollection, B: int,
     """
     rule = allocation or ("sle" if method in SLE_METHODS else "uniform")
     if rule == "sle":
-        return sle_alloc(tree, tasks.D, tasks.index, B,
+        return sle_alloc(tree, _edge_lengths(tasks), tasks.index, B,
                          root_frac=cfg.root_frac, regime=regime)
     if rule == "uniform":
         return uniform_alloc(tree.nodes, tree.root, B,
